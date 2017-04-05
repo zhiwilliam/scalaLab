@@ -1,7 +1,7 @@
 package com.zhiw.scala.oop
 
 // define template parameter must has compareTo method.
-class Pair[T <: Comparable[T]](val first: T, val second: T) {
+sealed class Pair[T <: Comparable[T]](val first: T, val second: T) {
     def bigger = if (first.compareTo(second) > 0) first else second
 }
 

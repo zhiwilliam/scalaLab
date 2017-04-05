@@ -1,7 +1,6 @@
 package com.zhiw.scala.oop
 
-
-class Structural {
+sealed class Structural {
     def open() = println("A class instance Opened")
 }
 

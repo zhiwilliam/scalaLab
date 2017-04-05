@@ -4,12 +4,12 @@ package com.zhiw.scala.oop
 //contravariant	C[T] is C[T']'s sub type [-T]
 //invariant	C[T] and C[T'] has no relationship	[T]
 
-class Covariant[+A]
-class Contravariant[-A]
+sealed class Covariant[+A]
+sealed class Contravariant[-A]
 
-class Animal { val sound = "rustle" }
-class Bird extends Animal { override val sound = "call" }
-class Chicken extends Bird { override val sound = "cluck" }
+sealed class Animal { val sound = "rustle" }
+sealed class Bird extends Animal { override val sound = "call" }
+sealed class Chicken extends Bird { override val sound = "cluck" }
 
 object Variance extends App {
     val cv1: Covariant[AnyRef] = new Covariant[String] // AnyRef like Object in Java
