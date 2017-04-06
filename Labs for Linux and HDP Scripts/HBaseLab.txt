@@ -1,0 +1,484 @@
+0 HBase Essential
+
+0.1 Start HBase Services
+	0.1.1 Open your browser adn navigate to the Ambari dashboard, login as admin/your password
+	0.1.2 In the left-hand navigation panel, click HBase
+	0.1.3 In the HBase service page that opens, click the Service Actions button in the top right-hand corner and select Start
+	
+0.2 Getting to Know the HBase Shell
+	0.2.1 Enter the following command to start the HBase shell:
+		hbase shell
+	0.2.2 Enter the following command:
+		help
+	0.2.3 Enter the following command:
+		create 'mytable', 'columnFamilyA', {NAME => 'columnFamilyB', VERSIONS => 3}
+	0.2.4 Enter the following command to confirm table creation:
+		list
+	0.2.5 Enter the following command:
+		describe 'mytable'
+	0.2.6 Enter the following command:
+		put 'mytable', 'rowkey1', 'columnFamilyA:a', 'qwerty'
+	0.2.7 Enter the following command:
+		put 'mytable', 'rowkey2', 'columnFamilyA:a', 'asdfg'
+	0.2.8 Enter the following command to scan the table and retrieve all contained rows:
+		scan 'mytable'
+		
+0.3 Working with the Cell Version History
+	0.3.1 Enter the following commands one after another to insert values in the same cell:
+		put 'mytable', 'rowkey3', 'columnFamilyB:ba', '0'
+		put 'mytable', 'rowkey3', 'columnFamilyB:ba', '1'
+		put 'mytable', 'rowkey3', 'columnFamilyB:ba', '2'
+		put 'mytable', 'rowkey3', 'columnFamilyB:ba', '3'
+		
+	0.3.2 Enter the following command to get all versions for the cell:
+		get 'mytable', 'rowkey3', {COLUMN => 'columnFamilyB:ba', VERSIONS => 3}
+	
+	0.3.3 Enter the following command to get the second cell value (using the timestamp shown in the middle of your output, in our case we are using 1478281814589):
+		get 'mytable', 'rowkey3', {COLUMN => 'columnFamilyB:ba', TIMESTAMP => 1478281814589}
+	
+	0.3.4 Enter the following command:
+		delete 'mytable', 'rowkey3', 'columnFamilyB:ba', 1478281814589
+
+	0.3.5 Enter the following command:
+		get 'mytable', 'rowkey3', {COLUMN => 'columnFamilyB:ba', VERSIONS => 3}
+		
+	0.3.6 Enter the following command:
+		scan 'mytable'
+		
+0.4 Incrementing Value
+	0.4.1 Enter the following command:
+		incr 'mytable', 'rowkey1', 'columnFamilyA:c', 0
+	
+	0.4.2 Enter the following command to increment the initial cell's value by 2:
+		incr 'mytable', 'rowkey1', 'columnFamilyA:c', 2
+		
+	0.4.3 Enter the following command:
+		get 'mytable', 'rowkey1', 'columnFamilyA:c'
+		
+	0.4.4 Enter the following command:
+		incr 'mytable', 'rowkey1', 'columnFamilyA:c'
+
+0.5 Capturing Shell Output
+	0.5.1 Enter the following command to close the HBase shell:
+		quit
+	
+	0.5.2 Enter the following command at the local system command prompt:
+		echo "scan 'mytable'" | hbase shell > scan_results.data
+		
+	0.5.3 review the contents of the scan_results.dat file
+		cat scan_results.data
+		
+	0.5.4 Enter the following command to get back to the HBase shell:
+		hbase shell
+		
+0.6 Configuring the Time to Live (TTL) value
+	0.6.1 Enter the following commands:
+		create 'ephimeral', {NAME => 'cf', TTL => '20'}
+
+	0.6.2 Enter the following command to insert a value in the table:
+		put 'ephimeral', 'r1', 'cf:20sec', 'hide-and-seek'
+		
+	0.6.3 Enter the following command:
+		get 'ephimeral', 'r1', 'cf:20sec'
+		
+	0.6.4 Enter the following commands one after another waiting for each command to complete:
+		disable 'ephimeral'
+		drop 'ephimeral'
+		
+0.7 Scanning with Limits
+	0.7.1 Enter the following command:
+		truncate 'mytable'
+	
+	0.7.2 Enter the following commands one after another:
+		put 'mytable', 'r1', 'columnFamilyA:c1', 'r1c1'
+		put 'mytable', 'r1', 'columnFamilyA:c2', 'r1c2'
+		put 'mytable', 'r2', 'columnFamilyA:c1', 'r1c1'
+		put 'mytable', 'r2', 'columnFamilyA:c2', 'r1c2'
+		
+	0.7.3 Enter the following command:
+		scan 'mytable'
+		
+	0.7.4 Enter the following command:
+		scan 'mytable', {COLUMNS => 'columnFamilyA:c1'}
+		
+	0.7.5 Enter the following command:
+		scan 'mytable', {STARTROW => 'r2'}
+		
+	0.7.6 Enter the following command:
+		scan 'mytable', {FILTER => "(PrefixFilter ('r2'))"}
+		
+	0.7.7 Enter the following command as the upper bound range value is not inclusive
+		scan 'mytable', {TIMERANGE => [1478282646236, 1478282655205]}
+		
+0.8 Export Data from HBase Table into Hive Table
+
+	0.8.1 Enter the following command to start the Hive shell:
+		hive
+		
+	0.8.2 Enter the following command to create hive table: 
+		
+		CREATE EXTERNAL TABLE IF NOT EXISTS mytable_hbase (rowkey STRING, c1 STRING, c2 STRING)
+		STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+		WITH SERDEPROPERTIES ('hbase.columns.mapping' = ':key,columnFamilyA:c1,columnFamilyA:c2')
+		TBLPROPERTIES ('hbase.table.name' = 'mytable');
+		
+	0.8.3 Enter the following command to query the hive table: 	
+	
+		SELECT * FROM mytable_hbase;
+		
+	0.8.4 Enter the gollowing command to insert value into mytable_hbase:
+		
+		INSERT INTO TABLE mytable_hbase values ("r3", "r3c1", "r3c2");
+		
+	0.8.5 OPen new SSH window and enter the following command to start hbase shell:
+		hbase shell
+		
+	0.8.6 Enter the following to see if the data is added to hbase table:
+		scan 'mytable'
+		put 'mytable', 'r4', 'columnFamilyA:c1', 'r4c1'
+		put 'mytable', 'r5', 'columnFamilyA:c2', 'r5c2'
+	
+	0.8.7 Go back to hive shell and enter the following command:
+	
+		SELECT * FROM mytable_hbase;
+		
+		CREATE TABLE IF NOT EXISTS mytable_hbase_1 LIKE mytable_hbase ROW FORMAT DELIMITED FIELDS TERMINATED BY '\t' STORED AS TEXTFILE;
+		
+		INSERT INTO TABLE mytable_hbase_1 SELECT * FROM mytable_hbase;
+	
+
+0.9 Import Data into HBase Table from Hive Table
+
+	0.9.1 Enter the following command to create hive table: 
+		
+		CREATE TABLE IF NOT EXISTS mytable_hbase_2 (rowkey STRING, c1 STRING, c2 STRING)
+		STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+		WITH SERDEPROPERTIES ('hbase.columns.mapping' = ':key,columnFamilyA:c1,columnFamilyA:c2')
+		TBLPROPERTIES ('hbase.table.name' = 'mytable_1');
+
+	0.9.2 Enter the following command to transfor the data from hive table into hbase table: 
+		
+		INSERT INTO TABLE mytable_hbase_2 SELECT * FROM mytable_hbase_1;
+		
+	0.9.3 Enter the following command from hbase shell:
+		
+		scan 'mytable_1'
+	
+		
+0.10 Import Data into HBase Table from RDBMS
+
+	0.10.1 Enter the following command from SSH
+	
+		sqoop import --connect jdbc:mysql://localhost/test --table business --fetch-size 10 --username root -P --hbase-create-table --hbase-table business --column-family f1 --hbase-row-key id -m 1
+	
+	0.10.1 Enter the following command from hbase shell:
+		describe 'business'
+		scan 'business', {'LIMIT' => 10}
+		count 'business', INTERVAL => 100000
+
+0.11 Using ImportTsv to load txt to HBase		
+		
+	0.11.1 Uploading simple1.txt TO HDFS
+		hadoop fs -copyFromLocal /training/apps/hbase/simple.txt  /user/root/simple.txt
+		
+	0.11.2 Create table in hbase
+		create 'simple1','cf'
+	
+	0.11.3 Using IMPORTTSV TO load txt to HBASE
+		hbase org.apache.hadoop.hbase.mapreduce.ImportTsv -Dimporttsv.separator="," -Dimporttsv.columns=HBASE_ROW_KEY,cf simple1 /user/root/simple.txt
+	
+		
+0.12 Bulk Load Data From HDFS into HBase
+		
+	0.12.1 Create table in hbase
+		create 'simple2','cf'
+		
+	0.12.2 USING IMPORTTSV TO GENERATE HFILE FOR TXT IN HDFS
+		hbase org.apache.hadoop.hbase.mapreduce.ImportTsv -Dimporttsv.separator="," -Dimporttsv.bulk.output=hfile_tmp5 -Dimporttsv.columns=HBASE_ROW_KEY,cf simple2 /user/root/simple.txt
+		
+	0.12.3 Using LoadIncrementalHFiles to load Hfile to HBase
+		hbase org.apache.hadoop.hbase.mapreduce.LoadIncrementalHFiles hfile_tmp5 simple2
+	
+	
+		
+1 More complex examples about Integration HBase with Hive
+
+Hive CLI:
+
+$hive
+
+1.1 CREATE TABLE IF NOT EXISTS PAGECOUNTS (projectcode STRING, pagename STRING, pageviews STRING, bytes STRING)
+    ROW FORMAT DELIMITED FIELDS TERMINATED BY ' '
+    LINES TERMINATED BY '\n'
+    STORED AS TEXTFILE
+    LOCATION '/user/root/pagecounts';
+                              
+1.2 SELECT * FROM PAGECOUNTS LIMIT 10;
+                              
+1.3 CREATE VIEW IF NOT EXISTS PGC(rowkey, pageviews, bytes) AS
+    SELECT concat_ws('/', projectcode, concat_ws('/', pagename, regexp_extract(INPUT__FILE__NAME, 'pagecounts-(\\d{8}-\\d{6})', 1))), pageviews, bytes FROM PAGECOUNTS;
+                              
+1.4 CREATE TABLE IF NOT EXISTS PAGECOUNTS_HBASE (rowkey STRING, pageviews STRING, bytes STRING)
+    STORED BY 'org.apache.hadoop.hive.hbase.HBaseStorageHandler'
+    WITH SERDEPROPERTIES ('hbase.columns.mapping' = ':key,f1:PAGEVIEWS,f1:BYTES')
+    TBLPROPERTIES ('hbase.table.name' = 'PAGECOUNTS');
+    
+1.5	FROM PGC INSERT INTO TABLE PAGECOUNTS_HBASE SELECT PGC.* WHERE rowkey LIKE 'en/q%' LIMIT 10;
+
+
+HBase Shell                              
+                              
+$hbase shell
+                              
+1.1 scan 'PAGECOUNTS'
+                              
+
+Phoenix
+
+Run the following command to enter Phoenix:
+
+/usr/hdp/2.4.0.0-169/phoenix/bin/sqlline.py localhost:2181
+
+How to map Phoenix table to an existing HBase table
+
+Create the view with the same name as the hbase table should be created
+							  
+1.1 CREATE VIEW "PAGECOUNTS" (pk VARCHAR PRIMARY KEY, "f1".PAGEVIEWS VARCHAR, "f1".BYTES VARCHAR)
+
+
+2. Zeppelin
+
+2.1 Download Pagecounts into HDFS
+
+%sh
+
+#create pagecounts folder in HDFS
+hadoop fs -mkdir /user/root/pagecounts
+hadoop fs -chmod 777 /user/root/pagecounts
+
+#fetch the dataset
+for x in {0..4} ; 
+	do wget "http://dumps.wikimedia.org/other/pagecounts-raw/2008/2008-10/pagecounts-20081001-0${x}0000.gz" -O /tmp/pagecounts-20081001-0${x}0000.gz; 
+done
+wget "http://dumps.wikimedia.org/other/pagecounts-raw/2008/2008-10/pagecounts-20081001-060000.gz" -O /tmp/pagecounts-20081001-060000.gz; 
+wget "http://dumps.wikimedia.org/other/pagecounts-raw/2008/2008-10/pagecounts-20081001-080000.gz" -O /tmp/pagecounts-20081001-080000.gz; 
+wget "http://dumps.wikimedia.org/other/pagecounts-raw/2008/2008-10/pagecounts-20081001-090000.gz" -O /tmp/pagecounts-20081001-090000.gz; 
+
+#upload pagecounts into HDFS
+hadoop fs -put /tmp/pagecounts-20081001*.* /user/root/pagecounts
+
+#remove existing copies of dataset from local
+rm /tmp/pagecounts-20081001*.*
+
+
+Comparison the performance between HBase and Hive
+
+HBase Query (0.08s)
+
+SELECT * FROM "PAGECOUNTS" WHERE PK = 'aa.b/Main_Page/20081001-010000'
+
+Hive Query (68s)
+
+SELECT * FROM PGC WHERE rowkey = 'aa.b/Main_Page/20081001-010000';
+
+
+
+3. Prepare HBASE Use Caes - Time Series Database
+
+3.1 Chech it the tables existing
+
+http://localhost:60010/tablesDetailed.jsp
+
+3.2 Create HBase TABLE
+
+$Hbase shell
+
+create 'tsdb-uid',
+  {NAME => 'id', COMPRESSION => 'SNAPPY', BLOOMFILTER => 'ROW'},
+  {NAME => 'name', COMPRESSION => 'SNAPPY', BLOOMFILTER => 'ROW'}
+
+create 'tsdb',
+  {NAME => 't', VERSIONS => 1, COMPRESSION => 'SNAPPY', BLOOMFILTER => 'ROW'}
+  
+create 'tsdb-tree',
+  {NAME => 't', VERSIONS => 1, COMPRESSION => 'SNAPPY', BLOOMFILTER => 'ROW'}
+  
+create 'tsdb-meta',
+  {NAME => 'name', COMPRESSION => 'SNAPPY', BLOOMFILTER => 'ROW'}
+
+3.3 Load Sample Data
+
+3.3.1 cd /tmp
+
+3.3.2 git clone https://github.com/sakserv/opentsdb-examples.git
+
+3.3.3 vi conf/opentsdb.conf and modify the config with the appropriate values:
+
+JAVA_BIN="/usr/lib/jvm/java-1.7.0-openjdk-1.7.0.95.x86_64/bin/"
+HBASE_HOME="/usr/hdp/2.4.0.0-169/hbase/"
+HADOOP_STREAMING_JAR=/usr/hdp/2.4.0.0-169/hadoop-mapreduce-client/hadoop-streaming-2.7.1.2.4.0.0-169.jar
+
+3.3.4 bash -x bin/create_opentsdb_hbase_tables.sh
+
+3.3.5 bash -x bin/opentsdb_tsd_install.sh
+
+3.3.6 bash -x bin/opentsdb_tcollector_install.sh
+
+3.3.7 bash -x bin/opentsdb_cli_install.sh
+
+3.3.8 bash -x bin/opentsdb_load_sample_data.sh
+
+if there are some errors to load sample data into HBase, do the following thing
+
+3.3.9 Strip the special characters (	) from /tmp/crimes_import_data using Nodepad++ (View -> Show Symbol -> Show all characters)
+
+3.3.10 /usr/lib/opentsdb/tsdb.cli import --auto-metric=true /tmp/crimes_import_data
+
+3.3.11 hdfs dfs -copyToLocal /tmp/opentsdb_sample_data/weatherout/part-00000 /tmp/weather_import_data
+
+3.3.12 Strip the special characters (	 and 	) from /tmp/weather_import_data using Nodepad++ (View -> Show Symbol -> Show all characters)
+
+3.3.13 /usr/lib/opentsdb/tsdb.cli import --auto-metric=true /tmp/weather_import_data
+
+3.4 Start TSDB
+
+/usr/lib/opentsdb/build/tsdb tsd --port=19990 --staticroot=/usr/lib/opentsdb/build/staticroot --cachedir=/tmp/tsd_cache --zkquorum=localhost:2181 --zkbasedir=/hbase-unsecure --auto-metric >/var/log/opentsdb/opentsdb.log 2>&1
+ 
+3.5 Goto OpenTSDB Web (port 19990 should be added from VM Network Forwarding)
+http://localhost:19990/
+
+
+4. HBase Over REST
+
+4.1 Start REST Server
+/usr/hdp/2.4.0.0-169/hbase/bin/hbase-daemon.sh start rest --port 8086 --infoport 8085
+
+4.2 List of all nonsystem tables
+	http://localhost:8086/
+
+4.3 Version of HBase running on this cluster
+	http://localhost:8086/version/cluster
+
+4.4 Cluster status
+	http://localhost:8086/status/cluster
+
+4.5 Describe the schema of the specified table
+	http://localhost:8086/tsdb/schema
+
+4.6 List the table regions
+	http://localhost:8086/PAGECOUNTS/regions
+
+4.7 Get the value of a single row. Values are Base-64 encoded
+	http://localhost:8086/tsdb-uid/weather.daily/cf:id
+
+	
+	
+
+5. Phoenix
+
+5.1 Enter phoenix CLI
+
+/usr/hdp/2.4.0.0-169/phoenix/bin/sqlline.py localhost:2181
+
+5.2 Create HBase Table using phoenix
+
+create table if not exists PRICES (
+ SYMBOL varchar(10),
+ DATE   varchar(10),
+ TIME varchar(10),
+ OPEN varchar(10),
+ HIGH varchar(10),
+ LOW    varchar(10),
+ CLOSE     varchar(10),
+ VOLUME varchar(30),
+ CONSTRAINT pk PRIMARY KEY (SYMBOL, DATE, TIME)
+);
+
+5.3 Import Data Into Table
+
+/usr/hdp/2.4.0.0-169/phoenix/bin/psql.py sandbox.hortonworks.com:2181:/hbase-unsecure /training/apps/hbase/prices.csv
+
+
+5.4 Query HBase Table using phoenix
+
+select date||time timestamp, volume, SYMBOL from PRICES group by timestamp, volume, SYMBOL;
+select date||time timestamp, high, SYMBOL from PRICES  group by timestamp, high, SYMBOL;
+
+
+5.5 Exploring HBase System
+
+5.5.1 Exploring Zookeeper
+
+@hbase shell
+zk_dump
+
+5.5.2 Exploring HBase Meta
+
+@hbase shell
+scan 'hbase:meta'
+
+
+5.6 Credit Card Transaction Monitor
+
+5.6.1 TransactionHistory
+
+ROWID:  		Tansaction ID (20011478304000000)
+Column Family:	Transactions
+Column:			accountNumber (19123)
+				acountType	(VISA)	
+				amount (145)
+				currency (USD)
+				distanceFromHome (79)
+				distanceFromPrev (79)
+				frauduent (true)
+				ipAddress
+				isCardPresent (true)
+				latitude (40.750449)
+				longitude (73.993379)
+				mechantId (2001)
+				merchantType (entertainment)
+				transactionId (20011478304000000)
+				transactionTimeStamp (1478296800000)
+
+5.6.2 CustomerAccount
+
+ROWID:			accountNumber (19123)
+Column Family:	AccountDetails
+Column:			accountLimit
+				accountNumber
+				accountType
+				conAmtDev
+				conAmtMean
+				distanceDev
+				distanceMean
+				elecAmtDev
+				elecAmtMean
+				entAmtDev
+				entAmtMean
+				expMonth
+				expYear
+				gasAmtDev
+				gasAmtMean
+				hbAmtDev
+				hbAmtMean
+				isActive
+				rAmtDev
+				rAmtMean
+				restAmtDev
+				restAmtMean
+				timeDeltaSecDev
+				timeDeltaSecMean
+Column Family:	CustomerDetails
+Column:			age
+				city
+				firstName
+				gender
+				ipAddress
+				lastName
+				latitude
+				longtitude
+				port
+				state
+				streetAddress
+				zipcode
+				
