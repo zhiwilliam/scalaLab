@@ -90,7 +90,7 @@ object TypeInference extends App {
 
     //A =:= B	A must be equal to B
     //A <:< B	A must be a subtype of B
-    //A <%< B	A must be viewable as B
+    //A <%< B	A must be viewable as B (not used anymore)
     def rocky[T](i: T)(implicit ev: T <:< java.io.Serializable) {}
     // rocky(pair) error!
 

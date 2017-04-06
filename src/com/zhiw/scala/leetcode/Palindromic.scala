@@ -1,6 +1,9 @@
 package com.zhiw.scala.leetcode
 import scala.util.control.Breaks._
 
+/**
+ * 解体心得： 回文的题目都需要分治。先设计出最简单的检查回文的function，然后再考虑对字符串的遍历，这样会比较容易。
+ */
 object Palindromic extends App {
     /**
      * Question 5:
@@ -12,29 +15,25 @@ object Palindromic extends App {
      * Reference to Question 9: Palindrome Number
      */
     private def max(x: Int, y: Int) = if (x < y) y else x
-    private def keepSearching(testString: String, i: Int, j: Int): Int = {
-        if (i == j) 1
-        else if (testString.charAt(i) == testString.charAt(j) && i + 1 == j) 2
-        else if (testString.charAt(i) == testString.charAt(j)) {
-            val next = keepSearching(testString, i + 1, j - 1)
-            if (next > 0) next + 2
-            else -2
-        }
-        else -2
+    def validate(testString: String, i: Int, j: Int): Boolean = {
+        if (i == j) true
+        else validate(testString.substring(i, j + 1))
     }
+
     private def longest(testString: String, i: Int, j: Int): Int = {
         if (i == j) 1
         else if (testString.charAt(i) == testString.charAt(j) && i + 1 == j) 2
-        else if (testString.charAt(i) == testString.charAt(j)) keepSearching(testString, i + 1, j - 1) + 2 
+        else if (testString.charAt(i) == testString.charAt(j)) if (validate(testString, i + 1, j - 1)) j - i + 1 else 0
         else max(longest(testString, i + 1, j), longest(testString, i, j - 1))
     }
     def longest(testString: String): Int = longest(testString, 0, testString.length() - 1)
-    println(longest("abcdcba"))
+    //println(longest("ttsabaabacd"))
 
     /**
      * Question 125: Valid Palindrome
      */
     def validate(testString: String): Boolean = {
+        println("validate " + testString)
         val list = testString.toCharArray()
         def check(list: Array[Char]): Boolean = list match {
             case Array.emptyCharArray => true
@@ -44,7 +43,7 @@ object Palindromic extends App {
         }
         check(list)
     }
-    println(validate("12344321"))
+    //println(validate("12344321"))
 
     /**
      * Question 336: Palindrome Pairs
@@ -65,7 +64,7 @@ object Palindromic extends App {
             j <- List.range(0, list.length) if (i != j && validate(list(i) + list(j)))
         ) yield i :: j :: Nil
     }
-    println(pairs("abcd" :: "dcba" :: "lls" :: "s" :: "sssll" :: Nil))
+//    println(pairs("abcd" :: "dcba" :: "lls" :: "s" :: "sssll" :: Nil))
 
     /**
      * Question 131: Palindrome Partitioning
@@ -80,6 +79,9 @@ object Palindromic extends App {
      *   ["aa","b"],
      *   ["a","a","b"]
      * ]
+     */
+    /**
+     * idea: it should be a tree structure. bottom line is a,a,b, then a,a has parent aa, a,b has parent ab. out put deepest first, then check parents and so on.
      */
 
     /**
@@ -101,14 +103,14 @@ object Palindromic extends App {
     private def shortest(testString: String, i: Int, j: Int): Int = {
         if (i == j) j
         else if (testString.charAt(i) == testString.charAt(j) && i + 1 == j) j
-        else if (testString.charAt(i) == testString.charAt(j)) max(keepSearching(testString, i + 1, j - 1) + 2, shortest(testString, i, j - 1))
+        else if (testString.charAt(i) == testString.charAt(j)) if (validate(testString)) j - i + 2 else shortest(testString, i, j - 1)
         else shortest(testString, i, j - 1)
     }
-    
+
     private def shortest(testString: String): String = {
         val len = shortest(testString, 0, testString.length() - 1)
         val append = testString.substring(len).reverse
         append + testString
     }
-    println(shortest("abccba2ddcba"))
+    //println(shortest("abccba2ddcba"))
 }
